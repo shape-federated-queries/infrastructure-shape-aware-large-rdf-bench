@@ -1,0 +1,15 @@
+[project]
+name = "shape-gen"
+version = "0.1.0"
+description = "Exact sheXer shapes for the LargeRDFBench QLever endpoints"
+# sheXer declares support up to 3.11; its dependency lightrdf ships Linux
+# wheels only up to 3.12.
+requires-python = "==3.11.*"
+dependencies = [
+    "shexer==2.7.3.1",
+]
+
+[tool.uv.sources]
+# Fork with the fixes of https://github.com/weso/shexer/pull/213 and
+# https://github.com/weso/shexer/pull/214 until they are released.
+shexer = { git = "https://github.com/constraintAutomaton/shexer", rev = "469c4c243fd1a8e6228daae72365eaa279012e6c" }

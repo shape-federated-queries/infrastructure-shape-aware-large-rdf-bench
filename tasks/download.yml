@@ -1,0 +1,27 @@
+# Download the Zenodo zip and extract only the dataset this node serves
+# (inventory_hostname) into its own directory under data_dir.
+- name: Create the dataset directory (and data_dir itself)
+  ansible.builtin.file:
+    path: "{{ data_dir }}/{{ inventory_hostname }}"
+    state: directory
+    mode: "0755"
+
+- name: Check whether this node's RDF file is already extracted
+  ansible.builtin.stat:
+    path: "{{ data_dir }}/{{ inventory_hostname }}/{{ rdf_files[inventory_hostname] }}"
+  register: rdf_stat
+
+- name: Download the dataset zip from Zenodo
+  ansible.builtin.get_url:
+    url: "{{ zenodo_zip_url }}"
+    dest: "{{ data_dir }}/rdf_datasets.zip"
+    checksum: "md5:{{ zenodo_zip_md5 }}"
+    mode: "0644"
+  when: not rdf_stat.stat.exists
+
+- name: Extract this node's RDF file
+  ansible.builtin.command:
+    cmd: >
+      unzip -o -j {{ data_dir }}/rdf_datasets.zip {{ rdf_files[inventory_hostname] }}
+      -d {{ data_dir }}/{{ inventory_hostname }}
+    creates: "{{ data_dir }}/{{ inventory_hostname }}/{{ rdf_files[inventory_hostname] }}"

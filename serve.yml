@@ -1,0 +1,9 @@
+# (Re)start every QLever endpoint in the cache mode `qlever_mode`, without
+# provisioning or downloading. Needs a completed `make deploy`. Run with
+# `make serve MODE=experiment|shapes`.
+- name: Serve the QLever endpoints in the requested mode
+  hosts: qlever
+  gather_facts: true
+  tasks:
+    - name: Index (if missing) and serve the endpoint
+      ansible.builtin.include_tasks: tasks/start_qlever.yml

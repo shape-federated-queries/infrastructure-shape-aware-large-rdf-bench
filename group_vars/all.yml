@@ -1,0 +1,58 @@
+# =============================================================================
+# Global settings for the QLever endpoint playbook. Task files under tasks/
+# reference these variables only -- no literals.
+#
+# The topology (which dataset runs on which wall node, and its port) lives in
+# inventory.yml: each host is named after its dataset. Any QLever knob below can
+# be overridden per host there.
+# =============================================================================
+
+# --- Virtual Wall connection (mirror these in inventory.yml) -----------------
+wall_bastion_host: bastion.ilabt.imec.be
+wall_bastion_user: fffbrtamuge
+wall_ssh_user: brtamuge
+wall_pem_file: ~/.ssh/ilabt.pem
+
+# --- Testbed provisioning ----------------------------------------------------
+# Base URL that serves the imec Virtual Wall helper scripts.
+wall_scripts_base: https://www.wall2.ilabt.iminds.be
+# Enlarge the root partition to fill the physical disk(s) (reboots the node).
+expand_root_disk: true
+# Enable outbound IPv4 via NAT for hosts that have no IPv6 address (IPv6 is on
+# by default). Re-applied every run -- it is not reboot-persistent.
+enable_nat: true
+
+# --- Data (LargeRDFBench Interoperable Edition, Zenodo record 22140177) -------
+zenodo_zip_url: https://zenodo.org/api/records/22140177/files/rdf_datasets.zip/content
+zenodo_zip_md5: d3b1dcedf94af4114d7a75f8f0fa141b
+data_dir: "{{ ansible_env.HOME }}/data"
+# Zip member for each dataset (flat at the zip root; extensions differ).
+rdf_files:
+  Affymetrix: Affymetrix.nt
+  ChEBI: ChEBI.ttl
+  DBPedia-Subset: DBPedia-Subset.nt
+  DrugBank: DrugBank.nt
+  GeoNames: GeoNames.ttl
+  Jamendo: Jamendo.nt
+  KEGG: KEGG.ttl
+  LinkedTCGA-A: LinkedTCGA-A.ttl
+  LinkedTCGA-E: LinkedTCGA-E.ttl
+  LinkedTCGA-M: LinkedTCGA-M.ttl
+  LMDB: LMDB.nt
+  NYT: NYT.nt
+  SWDFood: SWDFood.nt
+
+# --- QLever (defaults; override per host in inventory.yml) -------------------
+qlever_image: adfreiburg/qlever
+qlever_memory_max: 16G       # qlever-server -m
+# Query-result cache per mode; pick one with `qlever_mode` (make serve MODE=...).
+#   experiment  cache disabled: every run and every query is evaluated cold
+#   shapes      cache enabled: speeds up sheXer extraction + verification
+# cache_max -> qlever-server -c (a unit is required; bare 0 is rejected)
+# cache_entries -> qlever-server -k
+qlever_mode: experiment
+qlever_modes:
+  experiment: { cache_max: 0B, cache_entries: 0 }
+  shapes:     { cache_max: 4G, cache_entries: 1000 }
+qlever_query_timeout: 1800s  # qlever-server -s
+qlever_index_memory: 12G     # qlever-index -m

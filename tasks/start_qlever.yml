@@ -1,0 +1,77 @@
+# Build this node's QLever index from its RDF file (once), then serve it on
+# endpoint_port in a detached container, in the cache mode `qlever_mode`.
+# Re-running with another mode recreates only the server container (its command
+# and label change); the index is reused.
+- name: Fail on an unknown QLever mode
+  ansible.builtin.assert:
+    that: qlever_mode in qlever_modes
+    fail_msg: "qlever_mode '{{ qlever_mode }}' is not one of {{ qlever_modes | list }}"
+    quiet: true
+
+- name: Check whether the QLever index already exists
+  ansible.builtin.stat:
+    path: "{{ data_dir }}/{{ inventory_hostname }}/{{ inventory_hostname }}.index.spo"
+  register: qlever_index
+
+- name: Build the QLever index
+  community.docker.docker_container:
+    name: "qlever-index-{{ inventory_hostname }}"
+    image: "{{ qlever_image }}"
+    user: "{{ ansible_user_uid }}:{{ ansible_user_gid }}"
+    entrypoint: [qlever-index]
+    command:
+      - -i
+      - "{{ inventory_hostname }}"
+      - -f
+      - "{{ rdf_files[inventory_hostname] }}"
+      - -m
+      - "{{ qlever_index_memory }}"
+    volumes:
+      - "{{ data_dir }}/{{ inventory_hostname }}:/data"
+    working_dir: /data
+    detach: false
+    cleanup: true
+  when: not qlever_index.stat.exists
+
+- name: Serve the QLever index
+  community.docker.docker_container:
+    name: "qlever-{{ inventory_hostname }}"
+    image: "{{ qlever_image }}"
+    restart_policy: unless-stopped
+    user: "{{ ansible_user_uid }}:{{ ansible_user_gid }}"
+    entrypoint: [qlever-server]
+    command:
+      - -i
+      - "{{ inventory_hostname }}"
+      - -p
+      - "{{ endpoint_port }}"
+      - -m
+      - "{{ qlever_memory_max }}"
+      - -c
+      - "{{ qlever_modes[qlever_mode].cache_max }}"
+      - -k
+      - "{{ qlever_modes[qlever_mode].cache_entries }}"
+      - -s
+      - "{{ qlever_query_timeout }}"
+    labels:
+      qlever.mode: "{{ qlever_mode }}"
+    volumes:
+      - "{{ data_dir }}/{{ inventory_hostname }}:/data"
+    working_dir: /data
+    published_ports:
+      - "{{ endpoint_port }}:{{ endpoint_port }}"
+
+- name: Wait for the endpoint to listen
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ endpoint_port }}"
+    timeout: 300
+
+- name: Verify it answers ASK at /sparql
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ endpoint_port }}/sparql?query=ASK%7B%3Fs%20%3Fp%20%3Fo%7D"
+    headers:
+      Accept: application/sparql-results+json
+    return_content: true
+  register: ask
+  failed_when: "'true' not in ask.content"

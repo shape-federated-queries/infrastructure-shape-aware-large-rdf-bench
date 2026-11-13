@@ -1,0 +1,39 @@
+# =============================================================================
+# Copy this file to `inventory.yml` and fill in the wall addresses for your jFed
+# swap-in. `inventory.yml` is git-ignored so your node/user/key never get committed.
+#
+# This one file is the topology: each endpoint host is named after the DATASET it
+# serves (inventory_hostname), and `ansible_host` is its wall address. Every
+# endpoint listens on the same `endpoint_port`.
+#
+# Ansible parses the inventory before group_vars, so the SSH connection string
+# below cannot be templated -- keep the individual values in sync with all.yml.
+# =============================================================================
+
+all:
+  vars:
+    ansible_user: brtamuge
+    ansible_ssh_private_key_file: ~/.ssh/ilabt.pem
+    ansible_python_interpreter: /usr/bin/python3
+    # Bastion jump + legacy SHA-1 host keys (some wall node images only offer ssh-rsa).
+    ansible_ssh_common_args: >-
+      -o ServerAliveInterval=120
+      -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
+      -o ProxyCommand="ssh -i ~/.ssh/ilabt.pem -W %h:%p fffbrtamuge@bastion.ilabt.imec.be"
+  children:
+    qlever:
+      hosts:
+        # inventory_hostname == dataset this node serves; ansible_host == wall address
+        Affymetrix:     { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        ChEBI:          { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        DBPedia-Subset: { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        DrugBank:       { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        GeoNames:       { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        Jamendo:        { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        KEGG:           { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        LinkedTCGA-A:   { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        LinkedTCGA-E:   { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        LinkedTCGA-M:   { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        LMDB:           { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        NYT:            { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }
+        SWDFood:        { ansible_host: nXXX-XXa.wall2.ilabt.iminds.be, endpoint_port: 3002 }

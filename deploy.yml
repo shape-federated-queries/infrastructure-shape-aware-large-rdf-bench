@@ -1,0 +1,32 @@
+# Deploy one QLever SPARQL endpoint per wall node. Each host is named after the
+# dataset it serves (inventory_hostname), see inventory.yml. Run with `make deploy`.
+- name: Deploy the QLever SPARQL endpoints
+  hosts: qlever
+  gather_facts: true
+  tasks:
+    - name: Expand root disk to full physical disk (+reboot)
+      ansible.builtin.include_tasks: tasks/expand_disk.yml
+      when: expand_root_disk | bool
+
+    # After expand_disk: NAT is not reboot-persistent.
+    - name: Enable outbound IPv4 internet (NAT)
+      ansible.builtin.include_tasks: tasks/enable_internet.yml
+      when: enable_nat | bool
+
+    - name: System setup and base dependencies
+      ansible.builtin.include_tasks: tasks/system.yml
+
+    - name: Install Docker
+      ansible.builtin.include_tasks: tasks/docker.yml
+
+    - name: Pull the QLever image
+      community.docker.docker_image:
+        name: "{{ qlever_image }}"
+        source: pull
+        force_source: true
+
+    - name: Download and extract this node's dataset
+      ansible.builtin.include_tasks: tasks/download.yml
+
+    - name: Index and serve the endpoint
+      ansible.builtin.include_tasks: tasks/start_qlever.yml
